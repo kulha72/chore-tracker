@@ -259,21 +259,19 @@ export default function FamilyQuestBoard() {
   useEffect(() => {
     if (loaded.current) return;
     loaded.current = true;
-    (async () => {
-      try {
-        const result = await window.storage.get("questboard-state");
-        if (result?.value) {
-          const saved = JSON.parse(result.value);
-          setState((prev) => ({ ...prev, ...saved }));
-        }
-      } catch (e) { /* first run */ }
-    })();
+    try {
+      const raw = localStorage.getItem("questboard-state");
+      if (raw) {
+        const saved = JSON.parse(raw);
+        setState((prev) => ({ ...prev, ...saved }));
+      }
+    } catch (e) { /* first run */ }
   }, []);
 
-  const saveState = useCallback(async (newState) => {
+  const saveState = useCallback((newState) => {
     setState(newState);
     try {
-      await window.storage.set("questboard-state", JSON.stringify(newState));
+      localStorage.setItem("questboard-state", JSON.stringify(newState));
     } catch (e) { /* silent */ }
   }, []);
 
