@@ -534,6 +534,20 @@ export default function FamilyQuestBoard() {
               color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
             }}
           >Switch</button>
+          <button
+            onClick={() => {
+              const el = document.documentElement;
+              const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+              const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+              const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+              if (isFs) { exit.call(document); } else { req.call(el); }
+            }}
+            style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+              color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
+            }}
+          >⛶</button>
         </div>
       </div>
 
