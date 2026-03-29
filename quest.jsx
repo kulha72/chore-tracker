@@ -419,7 +419,9 @@ export default function FamilyQuestBoard() {
     return kids;
   };
 
-  const renderSelectScreen = () => (
+  const renderSelectScreen = () => {
+    const teamQuests = allQuests.filter((q) => (q.audience || "kids") === "all");
+    return (
     <div style={{ padding: "40px 24px", maxWidth: 500, margin: "0 auto", textAlign: "center", position: "relative" }}>
       <button
         onClick={() => {
@@ -438,7 +440,101 @@ export default function FamilyQuestBoard() {
       >⛶</button>
       <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
       <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 22, color: "#fff", fontWeight: 900, letterSpacing: 2, marginBottom: 6 }}>QUEST BOARD</div>
-      <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 14, color: "#666", marginBottom: 36 }}>Who's checking in?</div>
+      <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 14, color: "#666", marginBottom: 24 }}>Who's checking in?</div>
+
+      {/* Co-op Mission */}
+      <div style={{
+        background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
+        border: "1px solid rgba(255,107,255,0.3)",
+        borderRadius: 16,
+        padding: "14px 18px",
+        marginBottom: 16,
+        textAlign: "left",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ff6bff", fontWeight: 700 }}>🤝 CO-OP MISSION</span>
+          <span style={{ fontSize: 11, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
+        </div>
+        <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.coopMission.title}</div>
+        <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
+        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
+          <div style={{
+            background: state.coopMission.currentXp >= state.coopMission.targetXp
+              ? "linear-gradient(90deg, #ffd700, #ff6bff)"
+              : "linear-gradient(90deg, #ff6bff, #00aaff)",
+            height: "100%",
+            width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`,
+            borderRadius: 6,
+            transition: "width 0.5s",
+          }} />
+        </div>
+        <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+          {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
+          {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
+        </div>
+      </div>
+
+      {/* Team Chores */}
+      {teamQuests.length > 0 && (
+        <div style={{
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 16,
+          padding: "14px 18px",
+          marginBottom: 24,
+          textAlign: "left",
+        }}>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#00ffcc", letterSpacing: 1, marginBottom: 10 }}>👨‍👩‍👧‍👦 TEAM CHORES</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {teamQuests.map((quest) => {
+              const members = getQuestMembers(quest);
+              const completedCount = members.filter((m) => isQuestDone(quest.id, m.id, quest.type)).length;
+              const allDone = completedCount === members.length;
+              return (
+                <div key={quest.id} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "8px 12px",
+                  background: allDone ? "rgba(0,255,204,0.06)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${allDone ? "rgba(0,255,204,0.25)" : "rgba(255,255,255,0.07)"}`,
+                  borderRadius: 10,
+                }}>
+                  <div>
+                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: allDone ? "#00ffcc" : "#ddd", fontWeight: 600 }}>
+                      {quest.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#666", fontFamily: "'Exo 2', sans-serif", marginTop: 1 }}>
+                      {quest.type === "weekly" ? "weekly" : "daily"} · +{quest.xpReward} XP
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 12 }}>
+                    {members.map((m) => {
+                      const done = isQuestDone(quest.id, m.id, quest.type);
+                      const pending = state.completions.some(
+                        (c) => c.questId === quest.id && c.memberId === m.id && c.status === "pending_approval" &&
+                          ((quest.type === "daily" || quest.type === "mystery") ? isToday(c.completedAt) : isThisWeek(c.completedAt, state.weekStart))
+                      );
+                      return (
+                        <div key={m.id} title={m.name + (done ? (pending ? " (pending)" : " (done)") : "")} style={{
+                          fontSize: 18,
+                          opacity: done ? 1 : 0.3,
+                          position: "relative",
+                        }}>
+                          {m.avatar}
+                          {done && (
+                            <span style={{ position: "absolute", bottom: -2, right: -4, fontSize: 9 }}>
+                              {pending ? "⏳" : "✅"}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "#00ffcc", letterSpacing: 1, marginBottom: 12 }}>👾 CREW</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
@@ -503,7 +599,8 @@ export default function FamilyQuestBoard() {
         ))}
       </div>
     </div>
-  );
+    );
+  };
 
   const renderBoard = () => {
     const me = state.members.find((m) => m.id === activeUser);
