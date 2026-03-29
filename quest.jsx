@@ -422,181 +422,194 @@ export default function FamilyQuestBoard() {
   const renderSelectScreen = () => {
     const teamQuests = allQuests.filter((q) => (q.audience || "kids") === "all");
     return (
-    <div style={{ padding: "40px 24px", maxWidth: 500, margin: "0 auto", textAlign: "center", position: "relative" }}>
-      <button
-        onClick={() => {
-          const el = document.documentElement;
-          const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-          const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-          const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-          if (isFs) { exit.call(document); } else { req.call(el); }
-        }}
-        style={{
-          position: "absolute", top: 0, right: 0,
-          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: 8, padding: "5px 12px", cursor: "pointer",
-          color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
-        }}
-      >⛶</button>
-      <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
-      <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 22, color: "#fff", fontWeight: 900, letterSpacing: 2, marginBottom: 6 }}>QUEST BOARD</div>
-      <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 14, color: "#666", marginBottom: 24 }}>Who's checking in?</div>
-
-      {/* Co-op Mission */}
-      <div style={{
-        background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
-        border: "1px solid rgba(255,107,255,0.3)",
-        borderRadius: 16,
-        padding: "14px 18px",
-        marginBottom: 16,
-        textAlign: "left",
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ff6bff", fontWeight: 700 }}>🤝 CO-OP MISSION</span>
-          <span style={{ fontSize: 11, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
-        </div>
-        <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.coopMission.title}</div>
-        <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
-        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
-          <div style={{
-            background: state.coopMission.currentXp >= state.coopMission.targetXp
-              ? "linear-gradient(90deg, #ffd700, #ff6bff)"
-              : "linear-gradient(90deg, #ff6bff, #00aaff)",
-            height: "100%",
-            width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`,
-            borderRadius: 6,
-            transition: "width 0.5s",
-          }} />
-        </div>
-        <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
-          {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
-          {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
-        </div>
-      </div>
-
-      {/* Team Chores */}
-      {teamQuests.length > 0 && (
-        <div style={{
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 16,
-          padding: "14px 18px",
-          marginBottom: 24,
-          textAlign: "left",
-        }}>
-          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#00ffcc", letterSpacing: 1, marginBottom: 10 }}>👨‍👩‍👧‍👦 TEAM CHORES</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {teamQuests.map((quest) => {
-              const members = getQuestMembers(quest);
-              const completedCount = members.filter((m) => isQuestDone(quest.id, m.id, quest.type)).length;
-              const allDone = completedCount === members.length;
-              return (
-                <div key={quest.id} style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 12px",
-                  background: allDone ? "rgba(0,255,204,0.06)" : "rgba(255,255,255,0.03)",
-                  border: `1px solid ${allDone ? "rgba(0,255,204,0.25)" : "rgba(255,255,255,0.07)"}`,
-                  borderRadius: 10,
-                }}>
-                  <div>
-                    <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: allDone ? "#00ffcc" : "#ddd", fontWeight: 600 }}>
-                      {quest.title}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#666", fontFamily: "'Exo 2', sans-serif", marginTop: 1 }}>
-                      {quest.type === "weekly" ? "weekly" : "daily"} · +{quest.xpReward} XP
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 12 }}>
-                    {members.map((m) => {
-                      const done = isQuestDone(quest.id, m.id, quest.type);
-                      const pending = state.completions.some(
-                        (c) => c.questId === quest.id && c.memberId === m.id && c.status === "pending_approval" &&
-                          ((quest.type === "daily" || quest.type === "mystery") ? isToday(c.completedAt) : isThisWeek(c.completedAt, state.weekStart))
-                      );
-                      return (
-                        <div key={m.id} title={m.name + (done ? (pending ? " (pending)" : " (done)") : "")} style={{
-                          fontSize: 18,
-                          opacity: done ? 1 : 0.3,
-                          position: "relative",
-                        }}>
-                          {m.avatar}
-                          {done && (
-                            <span style={{ position: "absolute", bottom: -2, right: -4, fontSize: 9 }}>
-                              {pending ? "⏳" : "✅"}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+    <div style={{ padding: "24px", maxWidth: 1000, margin: "0 auto", position: "relative" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 36 }}>⚡</div>
+          <div>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 20, color: "#fff", fontWeight: 900, letterSpacing: 2 }}>QUEST BOARD</div>
+            <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#666" }}>Who's checking in?</div>
           </div>
         </div>
-      )}
-
-      <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "#00ffcc", letterSpacing: 1, marginBottom: 12 }}>👾 CREW</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-        {kids.map((kid) => (
-          <button
-            key={kid.id}
-            onClick={() => { setActiveUser(kid.id); setView("board"); }}
-            style={{
-              background: "linear-gradient(135deg, rgba(0,255,204,0.08), rgba(120,80,255,0.08))",
-              border: "1px solid rgba(0,255,204,0.25)",
-              borderRadius: 14,
-              padding: "16px 20px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#00ffcc"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,204,0.25)"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
-            <div style={{ fontSize: 36 }}>{kid.avatar}</div>
-            <div style={{ textAlign: "left", flex: 1 }}>
-              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, color: "#fff", fontWeight: 700 }}>{kid.name}</div>
-              <div style={{ fontSize: 12, color: "#00ffcc", fontFamily: "'Exo 2', sans-serif", marginTop: 2 }}>
-                {LEVEL_TITLES[kid.level]} · {kid.xp} XP · {kid.tokens} 🪙
-              </div>
-            </div>
-            <SpeakBtn text={`${kid.name}. ${LEVEL_TITLES[kid.level]}. ${kid.xp} X P. ${kid.tokens} tokens. Tap to sign in.`} size={28} />
-          </button>
-        ))}
+        <button
+          onClick={() => {
+            const el = document.documentElement;
+            const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+            const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+            if (isFs) { exit.call(document); } else { req.call(el); }
+          }}
+          style={{
+            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+            color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
+          }}
+        >⛶</button>
       </div>
 
-      <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "#7850ff", letterSpacing: 1, marginBottom: 12 }}>👨‍🚀 ADULTS</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {adults.map((adult) => (
-          <button
-            key={adult.id}
-            onClick={() => { setActiveUser(adult.id); setView("board"); }}
-            style={{
-              background: "linear-gradient(135deg, rgba(120,80,255,0.08), rgba(255,107,255,0.08))",
-              border: "1px solid rgba(120,80,255,0.25)",
-              borderRadius: 14,
-              padding: "16px 20px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#7850ff"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(120,80,255,0.25)"; e.currentTarget.style.transform = "translateY(0)"; }}
-          >
-            <div style={{ fontSize: 36 }}>{adult.avatar}</div>
-            <div style={{ textAlign: "left", flex: 1 }}>
-              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, color: "#fff", fontWeight: 700 }}>{adult.name}</div>
-              <div style={{ fontSize: 12, color: "#7850ff", fontFamily: "'Exo 2', sans-serif", marginTop: 2 }}>
-                {adult.xp} XP · {adult.tokens} 🪙
+      {/* Two-column landscape layout */}
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+
+        {/* Left column — crew sign-in */}
+        <div style={{ flex: "0 0 340px", display: "flex", flexDirection: "column", gap: 0 }}>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "#00ffcc", letterSpacing: 1, marginBottom: 10 }}>👾 CREW</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+            {kids.map((kid) => (
+              <button
+                key={kid.id}
+                onClick={() => { setActiveUser(kid.id); setView("board"); }}
+                style={{
+                  background: "linear-gradient(135deg, rgba(0,255,204,0.08), rgba(120,80,255,0.08))",
+                  border: "1px solid rgba(0,255,204,0.25)",
+                  borderRadius: 14,
+                  padding: "14px 18px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  transition: "all 0.2s",
+                  textAlign: "left",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#00ffcc"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,255,204,0.25)"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                <div style={{ fontSize: 32 }}>{kid.avatar}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 15, color: "#fff", fontWeight: 700 }}>{kid.name}</div>
+                  <div style={{ fontSize: 12, color: "#00ffcc", fontFamily: "'Exo 2', sans-serif", marginTop: 2 }}>
+                    {LEVEL_TITLES[kid.level]} · {kid.xp} XP · {kid.tokens} 🪙
+                  </div>
+                </div>
+                <SpeakBtn text={`${kid.name}. ${LEVEL_TITLES[kid.level]}. ${kid.xp} X P. ${kid.tokens} tokens. Tap to sign in.`} size={26} />
+              </button>
+            ))}
+          </div>
+
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "#7850ff", letterSpacing: 1, marginBottom: 10 }}>👨‍🚀 ADULTS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {adults.map((adult) => (
+              <button
+                key={adult.id}
+                onClick={() => { setActiveUser(adult.id); setView("board"); }}
+                style={{
+                  background: "linear-gradient(135deg, rgba(120,80,255,0.08), rgba(255,107,255,0.08))",
+                  border: "1px solid rgba(120,80,255,0.25)",
+                  borderRadius: 14,
+                  padding: "14px 18px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  transition: "all 0.2s",
+                  textAlign: "left",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#7850ff"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(120,80,255,0.25)"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                <div style={{ fontSize: 32 }}>{adult.avatar}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 15, color: "#fff", fontWeight: 700 }}>{adult.name}</div>
+                  <div style={{ fontSize: 12, color: "#7850ff", fontFamily: "'Exo 2', sans-serif", marginTop: 2 }}>
+                    {adult.xp} XP · {adult.tokens} 🪙
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right column — team progress */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Co-op Mission */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
+            border: "1px solid rgba(255,107,255,0.3)",
+            borderRadius: 16,
+            padding: "14px 18px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ff6bff", fontWeight: 700 }}>🤝 CO-OP MISSION</span>
+              <span style={{ fontSize: 11, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
+            </div>
+            <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.coopMission.title}</div>
+            <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
+            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
+              <div style={{
+                background: state.coopMission.currentXp >= state.coopMission.targetXp
+                  ? "linear-gradient(90deg, #ffd700, #ff6bff)"
+                  : "linear-gradient(90deg, #ff6bff, #00aaff)",
+                height: "100%",
+                width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`,
+                borderRadius: 6,
+                transition: "width 0.5s",
+              }} />
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+              {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
+              {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
+            </div>
+          </div>
+
+          {/* Team Chores */}
+          {teamQuests.length > 0 && (
+            <div style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 16,
+              padding: "14px 18px",
+            }}>
+              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#00ffcc", letterSpacing: 1, marginBottom: 10 }}>👨‍👩‍👧‍👦 TEAM CHORES</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {teamQuests.map((quest) => {
+                  const members = getQuestMembers(quest);
+                  const allDone = members.every((m) => isQuestDone(quest.id, m.id, quest.type));
+                  return (
+                    <div key={quest.id} style={{
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                      padding: "8px 12px",
+                      background: allDone ? "rgba(0,255,204,0.06)" : "rgba(255,255,255,0.03)",
+                      border: `1px solid ${allDone ? "rgba(0,255,204,0.25)" : "rgba(255,255,255,0.07)"}`,
+                      borderRadius: 10,
+                    }}>
+                      <div>
+                        <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: allDone ? "#00ffcc" : "#ddd", fontWeight: 600 }}>
+                          {quest.title}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#555", fontFamily: "'Exo 2', sans-serif", marginTop: 1 }}>
+                          {quest.type === "weekly" ? "weekly" : "daily"} · +{quest.xpReward} XP
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0, marginLeft: 12 }}>
+                        {members.map((m) => {
+                          const done = isQuestDone(quest.id, m.id, quest.type);
+                          const pending = state.completions.some(
+                            (c) => c.questId === quest.id && c.memberId === m.id && c.status === "pending_approval" &&
+                              ((quest.type === "daily" || quest.type === "mystery") ? isToday(c.completedAt) : isThisWeek(c.completedAt, state.weekStart))
+                          );
+                          return (
+                            <div key={m.id} title={m.name + (done ? (pending ? " (pending)" : " (done)") : "")} style={{
+                              fontSize: 18, opacity: done ? 1 : 0.3, position: "relative",
+                            }}>
+                              {m.avatar}
+                              {done && (
+                                <span style={{ position: "absolute", bottom: -2, right: -4, fontSize: 9 }}>
+                                  {pending ? "⏳" : "✅"}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </button>
-        ))}
+          )}
+
+        </div>
       </div>
     </div>
     );
