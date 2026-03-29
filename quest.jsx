@@ -254,6 +254,7 @@ export default function FamilyQuestBoard() {
   const [editingMember, setEditingMember] = useState(null);
   const [editCoopOpen, setEditCoopOpen] = useState(false);
   const [toast, setToast] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [hasLoaded, setHasLoaded] = useState(false);
   useEffect(() => {
@@ -301,6 +302,39 @@ export default function FamilyQuestBoard() {
     speak(msg);
     setTimeout(() => setToast(null), 3000);
   };
+
+  const exportState = useCallback(() => {
+    const data = JSON.stringify(state, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quest-board-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("Game exported!");
+  }, [state]);
+
+  const importState = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.members || !imported.quests) {
+          showToast("Invalid save file.");
+          return;
+        }
+        saveState({ ...INITIAL_STATE, ...imported });
+        showToast("Game imported!");
+      } catch {
+        showToast("Failed to read file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }, [saveState]);
 
   const triggerXp = (amount) => {
     setXpPopup(amount);
@@ -1208,8 +1242,11 @@ export default function FamilyQuestBoard() {
         )}
       </div>
 
-      {/* Reset */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16 }}>
+      {/* Export / Import / Reset */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button onClick={exportState} style={{ background: "rgba(0,255,204,0.1)", border: "1px solid #00ffcc", borderRadius: 8, padding: "8px 16px", color: "#00ffcc", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}>📤 Export Save</button>
+        <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(120,80,255,0.1)", border: "1px solid #7850ff", borderRadius: 8, padding: "8px 16px", color: "#7850ff", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}>📥 Import Save</button>
+        <input ref={fileInputRef} type="file" accept=".json" onChange={importState} style={{ display: "none" }} />
         <button onClick={() => {
           if (confirm("Reset ALL data? This can't be undone.")) saveState(INITIAL_STATE);
         }} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 8, padding: "8px 16px", color: "#ff4444", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}>🗑 Factory Reset</button>
