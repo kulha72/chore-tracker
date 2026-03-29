@@ -420,7 +420,22 @@ export default function FamilyQuestBoard() {
   };
 
   const renderSelectScreen = () => (
-    <div style={{ padding: "40px 24px", maxWidth: 500, margin: "0 auto", textAlign: "center" }}>
+    <div style={{ padding: "40px 24px", maxWidth: 500, margin: "0 auto", textAlign: "center", position: "relative" }}>
+      <button
+        onClick={() => {
+          const el = document.documentElement;
+          const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+          const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+          const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+          if (isFs) { exit.call(document); } else { req.call(el); }
+        }}
+        style={{
+          position: "absolute", top: 0, right: 0,
+          background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
+          borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+          color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
+        }}
+      >⛶</button>
       <div style={{ fontSize: 48, marginBottom: 8 }}>⚡</div>
       <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 22, color: "#fff", fontWeight: 900, letterSpacing: 2, marginBottom: 6 }}>QUEST BOARD</div>
       <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 14, color: "#666", marginBottom: 36 }}>Who's checking in?</div>
