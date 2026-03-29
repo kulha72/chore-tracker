@@ -255,10 +255,8 @@ export default function FamilyQuestBoard() {
   const [editCoopOpen, setEditCoopOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const loaded = useRef(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
   useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
     try {
       const raw = localStorage.getItem("questboard-state");
       if (raw) {
@@ -266,6 +264,7 @@ export default function FamilyQuestBoard() {
         setState((prev) => ({ ...prev, ...saved }));
       }
     } catch (e) { /* first run */ }
+    setHasLoaded(true);
   }, []);
 
   const saveState = useCallback((newState) => {
@@ -276,6 +275,7 @@ export default function FamilyQuestBoard() {
   }, []);
 
   useEffect(() => {
+    if (!hasLoaded) return;
     if (!state.todayMystery || !isToday(state.todayMystery?.createdAt)) {
       if (state.mysteryPool.length > 0) {
         const pick = state.mysteryPool[Math.floor(Math.random() * state.mysteryPool.length)];
@@ -294,7 +294,7 @@ export default function FamilyQuestBoard() {
         saveState(newState);
       }
     }
-  }, []);
+  }, [hasLoaded]);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -320,15 +320,17 @@ export default function FamilyQuestBoard() {
         ((quest.type === "daily" || quest.type === "mystery") ? isToday(c.completedAt) : isThisWeek(c.completedAt, state.weekStart))
     );
     if (already) { showToast("Already completed!"); return; }
+    const member = state.members.find((m) => m.id === memberId);
+    const needsApproval = quest.requiresApproval && member?.role !== "parent";
     const completion = {
       id: "c-" + Date.now(),
       questId,
       memberId,
       completedAt: new Date().toISOString(),
-      status: quest.requiresApproval ? "pending_approval" : "approved",
+      status: needsApproval ? "pending_approval" : "approved",
     };
     let members = [...state.members];
-    if (!quest.requiresApproval) {
+    if (!needsApproval) {
       members = members.map((m) =>
         m.id === memberId
           ? { ...m, xp: m.xp + quest.xpReward, tokens: m.tokens + quest.tokenReward, level: getLevel(m.xp + quest.xpReward) }
@@ -337,20 +339,20 @@ export default function FamilyQuestBoard() {
       triggerXp(quest.xpReward);
     }
     const coopMission = { ...state.coopMission };
-    if (!quest.requiresApproval) {
+    if (!needsApproval) {
       coopMission.currentXp = (coopMission.currentXp || 0) + quest.xpReward;
       if (coopMission.currentXp >= coopMission.targetXp && (coopMission.currentXp - quest.xpReward) < coopMission.targetXp) {
         triggerConfetti();
         showToast("🎉 CO-OP MISSION COMPLETE! " + coopMission.reward);
       }
     }
-    const memberName = state.members.find((m) => m.id === memberId)?.name;
+    const memberName = member?.name;
     const log = [
-      { text: `${memberName} completed "${quest.title}"${quest.requiresApproval ? " (pending approval)" : ""}`, time: new Date().toISOString() },
+      { text: `${memberName} completed "${quest.title}"${needsApproval ? " (pending approval)" : ""}`, time: new Date().toISOString() },
       ...state.activityLog.slice(0, 19),
     ];
     saveState({ ...state, completions: [...state.completions, completion], members, coopMission, activityLog: log });
-    if (quest.requiresApproval) showToast("Submitted for approval! ⏳");
+    if (needsApproval) showToast("Submitted for approval! ⏳");
     else showToast(`+${quest.xpReward} XP, +${quest.tokenReward} tokens! ⚡`);
   };
 
