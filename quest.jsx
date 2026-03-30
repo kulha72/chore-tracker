@@ -355,7 +355,7 @@ export default function FamilyQuestBoard() {
     );
     if (already) { showToast("Already completed!"); return; }
     const member = state.members.find((m) => m.id === memberId);
-    const needsApproval = quest.requiresApproval && member?.role !== "parent";
+    const needsApproval = member?.role === "kid";
     const completion = {
       id: "c-" + Date.now(),
       questId,
