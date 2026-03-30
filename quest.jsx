@@ -119,10 +119,27 @@ function daysUntilSunday() {
 function speak(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text.replace(/[🔮⚡🏆🌟🤝🪙🎁📡🛒]/g, ""));
-  utter.rate = 0.9;
-  utter.pitch = 1.1;
-  window.speechSynthesis.speak(utter);
+  const cleaned = text.replace(/[🔮⚡🏆🌟🤝🪙🎁📡🛒]/g, "");
+
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(cleaned);
+    utter.rate = 0.9;
+    utter.pitch = 1.1;
+    // Explicitly assign a voice — required on Android Chrome/Silk
+    const voices = window.speechSynthesis.getVoices();
+    const voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+    if (voice) utter.voice = voice;
+    // Small delay needed on Android Chrome after cancel()
+    setTimeout(() => window.speechSynthesis.speak(utter), 50);
+  };
+
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length > 0) {
+    doSpeak();
+  } else {
+    // Voices not yet loaded (common first-load on Android Chrome/Silk)
+    window.speechSynthesis.addEventListener("voiceschanged", doSpeak, { once: true });
+  }
 }
 
 function SpeakBtn({ text, size }) {
