@@ -815,20 +815,21 @@ export default function FamilyQuestBoard() {
                       return (
                         <button
                           key={member.id}
-                          onClick={() => !done && completeQuest(quest.id, member.id)}
-                          disabled={done}
+                          onClick={() => isSelf && !done && completeQuest(quest.id, member.id)}
+                          disabled={done || !isSelf}
                           style={{
-                            background: done ? (pending ? "rgba(255,215,0,0.15)" : "rgba(0,255,204,0.15)") : isSelf ? (memberIsAdult ? "rgba(120,80,255,0.15)" : "rgba(0,255,204,0.1)") : "rgba(255,255,255,0.05)",
-                            border: `1px solid ${done ? (pending ? "rgba(255,215,0,0.4)" : "rgba(0,255,204,0.4)") : isSelf ? (memberIsAdult ? "rgba(120,80,255,0.4)" : "rgba(0,255,204,0.3)") : "rgba(255,255,255,0.1)"}`,
+                            background: done ? (pending ? "rgba(255,215,0,0.15)" : "rgba(0,255,204,0.15)") : isSelf ? (memberIsAdult ? "rgba(120,80,255,0.25)" : "rgba(0,255,204,0.2)") : "rgba(255,255,255,0.03)",
+                            border: `2px solid ${done ? (pending ? "rgba(255,215,0,0.4)" : "rgba(0,255,204,0.4)") : isSelf ? (memberIsAdult ? "rgba(120,80,255,0.8)" : "rgba(0,255,204,0.7)") : "rgba(255,255,255,0.08)"}`,
                             borderRadius: 8,
-                            padding: "6px 14px",
-                            cursor: done ? "default" : "pointer",
-                            color: done ? (pending ? "#ffd700" : "#00ffcc") : isSelf ? "#fff" : "#aaa",
-                            fontSize: 12,
+                            padding: isSelf && !done ? "8px 18px" : "6px 14px",
+                            cursor: isSelf && !done ? "pointer" : "default",
+                            color: done ? (pending ? "#ffd700" : "#00ffcc") : isSelf ? "#fff" : "#555",
+                            fontSize: isSelf && !done ? 13 : 12,
                             fontFamily: "'Exo 2', sans-serif",
-                            fontWeight: isSelf ? 700 : 600,
+                            fontWeight: isSelf ? 700 : 500,
                             transition: "all 0.2s",
-                            opacity: done ? 0.7 : 1,
+                            opacity: done ? 0.7 : isSelf ? 1 : 0.4,
+                            boxShadow: isSelf && !done ? (memberIsAdult ? "0 0 10px rgba(120,80,255,0.35)" : "0 0 10px rgba(0,255,204,0.3)") : "none",
                           }}
                         >
                           {member.avatar} {member.name} {done ? (pending ? "⏳" : "✅") : ""}
