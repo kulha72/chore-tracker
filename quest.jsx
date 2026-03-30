@@ -63,11 +63,26 @@ const INITIAL_STATE = {
   ],
   coopMission: {
     title: "Asteroid Belt Challenge",
-    description: "The whole crew needs to earn 80 XP combined this week!",
+    description: "Kids earn 80 XP combined this week!",
     targetXp: 80,
     currentXp: 0,
     reward: "Family Ice Cream Trip 🍦",
     weekStart: new Date().toISOString(),
+  },
+  adultCoopMission: {
+    title: "Home Base Blitz",
+    description: "Parents earn 100 XP combined this week!",
+    targetXp: 100,
+    currentXp: 0,
+    reward: "Date Night Out 🌙",
+    weekStart: new Date().toISOString(),
+  },
+  longTermMission: {
+    title: "Yes Day",
+    description: "Kids earn 1000 XP total to unlock a full Yes Day — a whole day where you pick everything!",
+    targetXp: 1000,
+    currentXp: 0,
+    reward: "Yes Day 🎉",
   },
   completions: [],
   todayMystery: null,
@@ -270,6 +285,8 @@ export default function FamilyQuestBoard() {
   const [editingReward, setEditingReward] = useState(null);
   const [editingMember, setEditingMember] = useState(null);
   const [editCoopOpen, setEditCoopOpen] = useState(false);
+  const [editAdultCoopOpen, setEditAdultCoopOpen] = useState(false);
+  const [editLongTermOpen, setEditLongTermOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -389,12 +406,28 @@ export default function FamilyQuestBoard() {
       );
       triggerXp(quest.xpReward);
     }
+    const isKid = member?.role === "kid";
     const coopMission = { ...state.coopMission };
+    const adultCoopMission = { ...state.adultCoopMission };
+    const longTermMission = { ...state.longTermMission };
     if (!needsApproval) {
-      coopMission.currentXp = (coopMission.currentXp || 0) + quest.xpReward;
-      if (coopMission.currentXp >= coopMission.targetXp && (coopMission.currentXp - quest.xpReward) < coopMission.targetXp) {
-        triggerConfetti();
-        showToast("🎉 CO-OP MISSION COMPLETE! " + coopMission.reward);
+      if (isKid) {
+        coopMission.currentXp = (coopMission.currentXp || 0) + quest.xpReward;
+        if (coopMission.currentXp >= coopMission.targetXp && (coopMission.currentXp - quest.xpReward) < coopMission.targetXp) {
+          triggerConfetti();
+          showToast("🎉 KIDS CO-OP COMPLETE! " + coopMission.reward);
+        }
+        longTermMission.currentXp = (longTermMission.currentXp || 0) + quest.xpReward;
+        if (longTermMission.currentXp >= longTermMission.targetXp && (longTermMission.currentXp - quest.xpReward) < longTermMission.targetXp) {
+          triggerConfetti();
+          showToast("🎉 YES DAY UNLOCKED! " + longTermMission.reward);
+        }
+      } else {
+        adultCoopMission.currentXp = (adultCoopMission.currentXp || 0) + quest.xpReward;
+        if (adultCoopMission.currentXp >= adultCoopMission.targetXp && (adultCoopMission.currentXp - quest.xpReward) < adultCoopMission.targetXp) {
+          triggerConfetti();
+          showToast("🎉 ADULT CO-OP COMPLETE! " + adultCoopMission.reward);
+        }
       }
     }
     const memberName = member?.name;
@@ -402,7 +435,7 @@ export default function FamilyQuestBoard() {
       { text: `${memberName} completed "${quest.title}"${needsApproval ? " (pending approval)" : ""}`, time: new Date().toISOString() },
       ...state.activityLog.slice(0, 19),
     ];
-    saveState({ ...state, completions: [...state.completions, completion], members, coopMission, activityLog: log });
+    saveState({ ...state, completions: [...state.completions, completion], members, coopMission, adultCoopMission, longTermMission, activityLog: log });
     if (needsApproval) showToast("Submitted for approval! ⏳");
     else showToast(`+${quest.xpReward} XP, +${quest.tokenReward} tokens! ⚡`);
   };
@@ -410,6 +443,7 @@ export default function FamilyQuestBoard() {
   const approveCompletion = (completionId, approved) => {
     let members = [...state.members];
     let coopMission = { ...state.coopMission };
+    let longTermMission = { ...state.longTermMission };
     const completions = state.completions.map((c) => {
       if (c.id === completionId) {
         if (approved) {
@@ -421,13 +455,18 @@ export default function FamilyQuestBoard() {
                 : m
             );
             coopMission.currentXp = (coopMission.currentXp || 0) + quest.xpReward;
+            longTermMission.currentXp = (longTermMission.currentXp || 0) + quest.xpReward;
+            if (longTermMission.currentXp >= longTermMission.targetXp && (longTermMission.currentXp - quest.xpReward) < longTermMission.targetXp) {
+              triggerConfetti();
+              showToast("🎉 YES DAY UNLOCKED! " + longTermMission.reward);
+            }
           }
         }
         return { ...c, status: approved ? "approved" : "rejected" };
       }
       return c;
     });
-    saveState({ ...state, completions, members, coopMission });
+    saveState({ ...state, completions, members, coopMission, longTermMission });
     showToast(approved ? "Quest approved! ✅" : "Quest rejected ❌");
   };
 
@@ -573,7 +612,7 @@ export default function FamilyQuestBoard() {
         {/* Right column — team progress */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Co-op Mission */}
+          {/* Kids Co-op Mission */}
           <div style={{
             background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
             border: "1px solid rgba(255,107,255,0.3)",
@@ -581,25 +620,70 @@ export default function FamilyQuestBoard() {
             padding: "14px 18px",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ff6bff", fontWeight: 700 }}>🤝 CO-OP MISSION</span>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ff6bff", fontWeight: 700 }}>🤝 KIDS CO-OP</span>
               <span style={{ fontSize: 11, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
             </div>
             <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.coopMission.title}</div>
             <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
             <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
               <div style={{
-                background: state.coopMission.currentXp >= state.coopMission.targetXp
-                  ? "linear-gradient(90deg, #ffd700, #ff6bff)"
-                  : "linear-gradient(90deg, #ff6bff, #00aaff)",
-                height: "100%",
-                width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`,
-                borderRadius: 6,
-                transition: "width 0.5s",
+                background: state.coopMission.currentXp >= state.coopMission.targetXp ? "linear-gradient(90deg, #ffd700, #ff6bff)" : "linear-gradient(90deg, #ff6bff, #00aaff)",
+                height: "100%", width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
               }} />
             </div>
             <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
               {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
               {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
+            </div>
+          </div>
+
+          {/* Adult Co-op Mission */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(120,80,255,0.12), rgba(255,107,255,0.12))",
+            border: "1px solid rgba(120,80,255,0.3)",
+            borderRadius: 16,
+            padding: "14px 18px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#7850ff", fontWeight: 700 }}>🤝 ADULT CO-OP</span>
+              <span style={{ fontSize: 11, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.adultCoopMission.reward}</span>
+            </div>
+            <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.adultCoopMission.title}</div>
+            <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.adultCoopMission.description}</div>
+            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
+              <div style={{
+                background: state.adultCoopMission.currentXp >= state.adultCoopMission.targetXp ? "linear-gradient(90deg, #ffd700, #7850ff)" : "linear-gradient(90deg, #7850ff, #ff6bff)",
+                height: "100%", width: `${Math.min(100, (state.adultCoopMission.currentXp / state.adultCoopMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
+              }} />
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+              {state.adultCoopMission.currentXp} / {state.adultCoopMission.targetXp} XP
+              {state.adultCoopMission.currentXp >= state.adultCoopMission.targetXp && " ✅ COMPLETE!"}
+            </div>
+          </div>
+
+          {/* Long-Term Mission */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(255,215,0,0.10), rgba(255,107,255,0.10))",
+            border: "1px solid rgba(255,215,0,0.35)",
+            borderRadius: 16,
+            padding: "14px 18px",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 12, color: "#ffd700", fontWeight: 700 }}>⭐ LONG-TERM</span>
+              <span style={{ fontSize: 11, color: "#ff6bff", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.longTermMission.reward}</span>
+            </div>
+            <div style={{ fontSize: 13, color: "#eee", fontFamily: "'Exo 2', sans-serif", fontWeight: 600, marginBottom: 2 }}>{state.longTermMission.title}</div>
+            <div style={{ fontSize: 11, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.longTermMission.description}</div>
+            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 10, overflow: "hidden" }}>
+              <div style={{
+                background: state.longTermMission.currentXp >= state.longTermMission.targetXp ? "linear-gradient(90deg, #ffd700, #ff6bff)" : "linear-gradient(90deg, #ffd700, #ff9900)",
+                height: "100%", width: `${Math.min(100, (state.longTermMission.currentXp / state.longTermMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
+              }} />
+            </div>
+            <div style={{ textAlign: "right", fontSize: 11, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+              {state.longTermMission.currentXp} / {state.longTermMission.targetXp} XP
+              {state.longTermMission.currentXp >= state.longTermMission.targetXp && " ✅ UNLOCKED!"}
             </div>
           </div>
 
@@ -727,39 +811,96 @@ export default function FamilyQuestBoard() {
         </div>
       </div>
 
-      {/* Co-op Mission */}
-      <div style={{
-        background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
-        border: "1px solid rgba(255,107,255,0.3)",
-        borderRadius: 16,
-        padding: "16px 20px",
-        marginBottom: 24,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <SpeakBtn text={`Co-op mission: ${state.coopMission.title}. ${state.coopMission.description}. Reward: ${state.coopMission.reward}. Progress: ${state.coopMission.currentXp} out of ${state.coopMission.targetXp} X P.`} size={26} />
-            <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ff6bff", fontWeight: 700 }}>🤝 CO-OP MISSION</span>
-            <span style={{ fontSize: 13, color: "#ccc", marginLeft: 4, fontFamily: "'Exo 2', sans-serif" }}>{state.coopMission.title}</span>
-          </div>
-          <span style={{ fontSize: 12, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
-        </div>
-        <div style={{ fontSize: 12, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
-        <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 12, overflow: "hidden", position: "relative" }}>
+      {/* Co-op / Adult Mission */}
+      {!isAdultUser ? (
+        <>
+          {/* Kids Co-op Mission */}
           <div style={{
-            background: state.coopMission.currentXp >= state.coopMission.targetXp
-              ? "linear-gradient(90deg, #ffd700, #ff6bff)"
-              : "linear-gradient(90deg, #ff6bff, #00aaff)",
-            height: "100%",
-            width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`,
-            borderRadius: 6,
-            transition: "width 0.5s",
-          }} />
+            background: "linear-gradient(135deg, rgba(255,107,255,0.12), rgba(0,170,255,0.12))",
+            border: "1px solid rgba(255,107,255,0.3)",
+            borderRadius: 16,
+            padding: "16px 20px",
+            marginBottom: 16,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <SpeakBtn text={`Co-op mission: ${state.coopMission.title}. ${state.coopMission.description}. Reward: ${state.coopMission.reward}. Progress: ${state.coopMission.currentXp} out of ${state.coopMission.targetXp} X P.`} size={26} />
+                <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ff6bff", fontWeight: 700 }}>🤝 KIDS CO-OP</span>
+                <span style={{ fontSize: 13, color: "#ccc", marginLeft: 4, fontFamily: "'Exo 2', sans-serif" }}>{state.coopMission.title}</span>
+              </div>
+              <span style={{ fontSize: 12, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.coopMission.reward}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.coopMission.description}</div>
+            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 12, overflow: "hidden" }}>
+              <div style={{
+                background: state.coopMission.currentXp >= state.coopMission.targetXp ? "linear-gradient(90deg, #ffd700, #ff6bff)" : "linear-gradient(90deg, #ff6bff, #00aaff)",
+                height: "100%", width: `${Math.min(100, (state.coopMission.currentXp / state.coopMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
+              }} />
+            </div>
+            <div style={{ textAlign: "right", fontSize: 12, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+              {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
+              {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
+            </div>
+          </div>
+
+          {/* Long-Term Mission: Yes Day */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(255,215,0,0.10), rgba(255,107,255,0.10))",
+            border: "1px solid rgba(255,215,0,0.35)",
+            borderRadius: 16,
+            padding: "16px 20px",
+            marginBottom: 24,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <SpeakBtn text={`Long-term mission: ${state.longTermMission.title}. ${state.longTermMission.description}. Progress: ${state.longTermMission.currentXp} out of ${state.longTermMission.targetXp} X P.`} size={26} />
+                <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ffd700", fontWeight: 700 }}>⭐ LONG-TERM MISSION</span>
+                <span style={{ fontSize: 13, color: "#ccc", marginLeft: 4, fontFamily: "'Exo 2', sans-serif" }}>{state.longTermMission.title}</span>
+              </div>
+              <span style={{ fontSize: 12, color: "#ff6bff", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.longTermMission.reward}</span>
+            </div>
+            <div style={{ fontSize: 12, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.longTermMission.description}</div>
+            <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 12, overflow: "hidden" }}>
+              <div style={{
+                background: state.longTermMission.currentXp >= state.longTermMission.targetXp ? "linear-gradient(90deg, #ffd700, #ff6bff)" : "linear-gradient(90deg, #ffd700, #ff9900)",
+                height: "100%", width: `${Math.min(100, (state.longTermMission.currentXp / state.longTermMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
+              }} />
+            </div>
+            <div style={{ textAlign: "right", fontSize: 12, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+              {state.longTermMission.currentXp} / {state.longTermMission.targetXp} XP
+              {state.longTermMission.currentXp >= state.longTermMission.targetXp && " ✅ UNLOCKED!"}
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Adult Co-op Mission */
+        <div style={{
+          background: "linear-gradient(135deg, rgba(120,80,255,0.12), rgba(255,107,255,0.12))",
+          border: "1px solid rgba(120,80,255,0.3)",
+          borderRadius: 16,
+          padding: "16px 20px",
+          marginBottom: 24,
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#7850ff", fontWeight: 700 }}>🤝 ADULT CO-OP</span>
+              <span style={{ fontSize: 13, color: "#ccc", marginLeft: 4, fontFamily: "'Exo 2', sans-serif" }}>{state.adultCoopMission.title}</span>
+            </div>
+            <span style={{ fontSize: 12, color: "#ffd700", fontFamily: "'Exo 2', sans-serif" }}>Reward: {state.adultCoopMission.reward}</span>
+          </div>
+          <div style={{ fontSize: 12, color: "#aaa", fontFamily: "'Exo 2', sans-serif", marginBottom: 8 }}>{state.adultCoopMission.description}</div>
+          <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 6, height: 12, overflow: "hidden" }}>
+            <div style={{
+              background: state.adultCoopMission.currentXp >= state.adultCoopMission.targetXp ? "linear-gradient(90deg, #ffd700, #7850ff)" : "linear-gradient(90deg, #7850ff, #ff6bff)",
+              height: "100%", width: `${Math.min(100, (state.adultCoopMission.currentXp / state.adultCoopMission.targetXp) * 100)}%`, borderRadius: 6, transition: "width 0.5s",
+            }} />
+          </div>
+          <div style={{ textAlign: "right", fontSize: 12, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
+            {state.adultCoopMission.currentXp} / {state.adultCoopMission.targetXp} XP
+            {state.adultCoopMission.currentXp >= state.adultCoopMission.targetXp && " ✅ COMPLETE!"}
+          </div>
         </div>
-        <div style={{ textAlign: "right", fontSize: 12, color: "#ddd", marginTop: 4, fontFamily: "'Exo 2', sans-serif" }}>
-          {state.coopMission.currentXp} / {state.coopMission.targetXp} XP
-          {state.coopMission.currentXp >= state.coopMission.targetXp && " ✅ COMPLETE!"}
-        </div>
-      </div>
+      )}
 
       {/* Weekly countdown */}
       <div style={{ textAlign: "center", marginBottom: 20 }}>
@@ -1240,10 +1381,10 @@ export default function FamilyQuestBoard() {
         ))}
       </div>
 
-      {/* Co-op Mission Editor */}
+      {/* Kids Co-op Mission Editor */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#888", letterSpacing: 1 }}>🤝 CO-OP MISSION</div>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ff6bff", letterSpacing: 1 }}>🤝 KIDS CO-OP MISSION</div>
           <button onClick={() => setEditCoopOpen(!editCoopOpen)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 10px", color: "#aaa", cursor: "pointer", fontSize: 11 }}>Edit</button>
         </div>
         {editCoopOpen && (
@@ -1256,6 +1397,46 @@ export default function FamilyQuestBoard() {
             </div>
             <input value={state.coopMission.reward} onChange={(e) => saveState({ ...state, coopMission: { ...state.coopMission, reward: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#ffd700", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Reward" />
             <button onClick={() => saveState({ ...state, coopMission: { ...state.coopMission, currentXp: 0 } })} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 6, padding: "5px 12px", color: "#ff4444", cursor: "pointer", fontSize: 11, fontFamily: "'Exo 2', sans-serif", alignSelf: "flex-start" }}>Reset Progress</button>
+          </div>
+        )}
+      </div>
+
+      {/* Adult Co-op Mission Editor */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#7850ff", letterSpacing: 1 }}>🤝 ADULT CO-OP MISSION</div>
+          <button onClick={() => setEditAdultCoopOpen(!editAdultCoopOpen)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 10px", color: "#aaa", cursor: "pointer", fontSize: 11 }}>Edit</button>
+        </div>
+        {editAdultCoopOpen && (
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            <input value={state.adultCoopMission.title} onChange={(e) => saveState({ ...state, adultCoopMission: { ...state.adultCoopMission, title: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Mission name" />
+            <input value={state.adultCoopMission.description} onChange={(e) => saveState({ ...state, adultCoopMission: { ...state.adultCoopMission, description: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Description" />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input type="number" value={state.adultCoopMission.targetXp} onChange={(e) => saveState({ ...state, adultCoopMission: { ...state.adultCoopMission, targetXp: parseInt(e.target.value) || 0 } })} style={{ width: 80, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#7850ff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} />
+              <span style={{ color: "#888", alignSelf: "center", fontSize: 11 }}>Target XP</span>
+            </div>
+            <input value={state.adultCoopMission.reward} onChange={(e) => saveState({ ...state, adultCoopMission: { ...state.adultCoopMission, reward: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#ffd700", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Reward" />
+            <button onClick={() => saveState({ ...state, adultCoopMission: { ...state.adultCoopMission, currentXp: 0 } })} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 6, padding: "5px 12px", color: "#ff4444", cursor: "pointer", fontSize: 11, fontFamily: "'Exo 2', sans-serif", alignSelf: "flex-start" }}>Reset Progress</button>
+          </div>
+        )}
+      </div>
+
+      {/* Long-Term Mission Editor */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ffd700", letterSpacing: 1 }}>⭐ LONG-TERM MISSION</div>
+          <button onClick={() => setEditLongTermOpen(!editLongTermOpen)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 10px", color: "#aaa", cursor: "pointer", fontSize: 11 }}>Edit</button>
+        </div>
+        {editLongTermOpen && (
+          <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+            <input value={state.longTermMission.title} onChange={(e) => saveState({ ...state, longTermMission: { ...state.longTermMission, title: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Mission name" />
+            <input value={state.longTermMission.description} onChange={(e) => saveState({ ...state, longTermMission: { ...state.longTermMission, description: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Description" />
+            <div style={{ display: "flex", gap: 8 }}>
+              <input type="number" value={state.longTermMission.targetXp} onChange={(e) => saveState({ ...state, longTermMission: { ...state.longTermMission, targetXp: parseInt(e.target.value) || 0 } })} style={{ width: 80, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#ffd700", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} />
+              <span style={{ color: "#888", alignSelf: "center", fontSize: 11 }}>Target XP</span>
+            </div>
+            <input value={state.longTermMission.reward} onChange={(e) => saveState({ ...state, longTermMission: { ...state.longTermMission, reward: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#ff6bff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Reward" />
+            <button onClick={() => saveState({ ...state, longTermMission: { ...state.longTermMission, currentXp: 0 } })} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 6, padding: "5px 12px", color: "#ff4444", cursor: "pointer", fontSize: 11, fontFamily: "'Exo 2', sans-serif", alignSelf: "flex-start" }}>Reset Progress</button>
           </div>
         )}
       </div>
