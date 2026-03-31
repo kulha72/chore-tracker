@@ -85,6 +85,7 @@ const INITIAL_STATE = {
     reward: "Yes Day 🎉",
   },
   completions: [],
+  pendingRewards: [],
   todayMystery: null,
   activityLog: [],
   weekStart: new Date().toISOString(),
@@ -477,6 +478,20 @@ export default function FamilyQuestBoard() {
       showToast("Not enough tokens!");
       return;
     }
+    if (member.role === "kid") {
+      const pendingRewards = [
+        { id: "pr-" + Date.now(), rewardId, memberId, requestedAt: new Date().toISOString(), status: "pending_approval" },
+        ...(state.pendingRewards || []),
+      ];
+      const log = [
+        { text: `${member.name} requested "${reward.title}" (pending approval)`, time: new Date().toISOString() },
+        ...state.activityLog.slice(0, 19),
+      ];
+      saveState({ ...state, pendingRewards, activityLog: log });
+      triggerConfetti();
+      showToast(`🎁 ${reward.title} requested! ⏳`);
+      return;
+    }
     const members = state.members.map((m) =>
       m.id === memberId ? { ...m, tokens: m.tokens - reward.tokenCost } : m
     );
@@ -489,6 +504,32 @@ export default function FamilyQuestBoard() {
     showToast(`🎁 ${reward.title} redeemed!`);
   };
 
+  const approveRewardRedemption = (pendingRewardId, approved) => {
+    const pending = (state.pendingRewards || []).find((pr) => pr.id === pendingRewardId);
+    if (!pending) return;
+    const reward = state.rewards.find((r) => r.id === pending.rewardId);
+    const member = state.members.find((m) => m.id === pending.memberId);
+    const pendingRewards = (state.pendingRewards || []).filter((pr) => pr.id !== pendingRewardId);
+    if (approved && reward && member) {
+      const members = state.members.map((m) =>
+        m.id === pending.memberId ? { ...m, tokens: m.tokens - reward.tokenCost } : m
+      );
+      const log = [
+        { text: `${member.name} redeemed "${reward.title}"! (approved)`, time: new Date().toISOString() },
+        ...state.activityLog.slice(0, 19),
+      ];
+      saveState({ ...state, pendingRewards, members, activityLog: log });
+      showToast("Reward approved! ✅");
+    } else {
+      const log = [
+        { text: `${member?.name}'s request for "${reward?.title}" was denied.`, time: new Date().toISOString() },
+        ...state.activityLog.slice(0, 19),
+      ];
+      saveState({ ...state, pendingRewards, activityLog: log });
+      showToast("Reward request denied ❌");
+    }
+  };
+
   const isQuestDone = (questId, memberId, type) => {
     return state.completions.some(
       (c) => c.questId === questId && c.memberId === memberId && c.status !== "rejected" &&
@@ -497,6 +538,8 @@ export default function FamilyQuestBoard() {
   };
 
   const pendingApprovals = state.completions.filter((c) => c.status === "pending_approval");
+  const pendingRewardRequests = (state.pendingRewards || []).filter((pr) => pr.status === "pending_approval");
+  const totalPending = pendingApprovals.length + pendingRewardRequests.length;
 
   const kids = state.members.filter((m) => m.role === "kid");
   const adults = state.members.filter((m) => m.role === "parent");
@@ -1133,31 +1176,38 @@ export default function FamilyQuestBoard() {
         {/* Loot Shop */}
         <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ffd700", marginBottom: 12, letterSpacing: 1 }}>🛒 LOOT SHOP</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
-          {state.rewards.filter((r) => r.isAvailable).map((reward) => (
+          {state.rewards.filter((r) => r.isAvailable).map((reward) => {
+            const isPending = (state.pendingRewards || []).some(
+              (pr) => pr.rewardId === reward.id && pr.memberId === kid.id && pr.status === "pending_approval"
+            );
+            const canAfford = kid.tokens >= reward.tokenCost;
+            return (
             <div key={reward.id} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
               background: "rgba(255,215,0,0.05)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: 10, padding: "10px 14px",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <SpeakBtn text={`${reward.title}. Costs ${reward.tokenCost} tokens.${kid.tokens >= reward.tokenCost ? " You can afford this!" : " You need " + (reward.tokenCost - kid.tokens) + " more tokens."}`} size={26} />
+                <SpeakBtn text={`${reward.title}. Costs ${reward.tokenCost} tokens.${canAfford ? " You can afford this!" : " You need " + (reward.tokenCost - kid.tokens) + " more tokens."}`} size={26} />
                 <div>
                   <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 14, color: "#eee" }}>{reward.title}</div>
                   <div style={{ fontSize: 12, color: "#ffd700" }}>{reward.tokenCost} 🪙</div>
                 </div>
               </div>
               <button
-                onClick={() => redeemReward(reward.id, kid.id)}
-                disabled={kid.tokens < reward.tokenCost}
+                onClick={() => !isPending && redeemReward(reward.id, kid.id)}
+                disabled={!canAfford || isPending}
                 style={{
-                  background: kid.tokens >= reward.tokenCost ? "linear-gradient(135deg, #ffd700, #ff6bff)" : "rgba(255,255,255,0.05)",
-                  border: "none", borderRadius: 8, padding: "6px 16px", cursor: kid.tokens >= reward.tokenCost ? "pointer" : "default",
-                  color: kid.tokens >= reward.tokenCost ? "#000" : "#555", fontFamily: "'Orbitron', sans-serif", fontSize: 11, fontWeight: 700,
+                  background: isPending ? "rgba(255,215,0,0.15)" : canAfford ? "linear-gradient(135deg, #ffd700, #ff6bff)" : "rgba(255,255,255,0.05)",
+                  border: isPending ? "1px solid rgba(255,215,0,0.4)" : "none", borderRadius: 8, padding: "6px 16px",
+                  cursor: canAfford && !isPending ? "pointer" : "default",
+                  color: isPending ? "#ffd700" : canAfford ? "#000" : "#555", fontFamily: "'Orbitron', sans-serif", fontSize: 11, fontWeight: 700,
                 }}
               >
-                Redeem
+                {isPending ? "Requested ⏳" : "Redeem"}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -1217,9 +1267,9 @@ export default function FamilyQuestBoard() {
       </div>
 
       {/* Pending Approvals */}
-      {pendingApprovals.length > 0 && (
+      {totalPending > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ffd700", marginBottom: 10, letterSpacing: 1 }}>⏳ PENDING APPROVAL ({pendingApprovals.length})</div>
+          <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#ffd700", marginBottom: 10, letterSpacing: 1 }}>⏳ PENDING APPROVAL ({totalPending})</div>
           {pendingApprovals.map((c) => {
             const quest = [...state.quests, state.todayMystery].find((q) => q?.id === c.questId);
             const member = state.members.find((m) => m.id === c.memberId);
@@ -1235,6 +1285,26 @@ export default function FamilyQuestBoard() {
                 <div style={{ display: "flex", gap: 6 }}>
                   <button onClick={() => approveCompletion(c.id, true)} style={{ background: "rgba(0,255,204,0.15)", border: "1px solid #00ffcc", borderRadius: 6, padding: "4px 12px", color: "#00ffcc", cursor: "pointer", fontSize: 12, fontFamily: "'Exo 2', sans-serif" }}>✓</button>
                   <button onClick={() => approveCompletion(c.id, false)} style={{ background: "rgba(255,68,68,0.15)", border: "1px solid #ff4444", borderRadius: 6, padding: "4px 12px", color: "#ff4444", cursor: "pointer", fontSize: 12, fontFamily: "'Exo 2', sans-serif" }}>✗</button>
+                </div>
+              </div>
+            );
+          })}
+          {pendingRewardRequests.map((pr) => {
+            const reward = state.rewards.find((r) => r.id === pr.rewardId);
+            const member = state.members.find((m) => m.id === pr.memberId);
+            return (
+              <div key={pr.id} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)", borderRadius: 10, padding: "10px 14px", marginBottom: 6,
+              }}>
+                <div>
+                  <span style={{ color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 14 }}>{member?.avatar} {member?.name}</span>
+                  <span style={{ color: "#888", fontSize: 13, marginLeft: 8 }}>→ 🎁 {reward?.title}</span>
+                  <span style={{ color: "#ffd700", fontSize: 12, marginLeft: 8 }}>({reward?.tokenCost} 🪙)</span>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <button onClick={() => approveRewardRedemption(pr.id, true)} style={{ background: "rgba(0,255,204,0.15)", border: "1px solid #00ffcc", borderRadius: 6, padding: "4px 12px", color: "#00ffcc", cursor: "pointer", fontSize: 12, fontFamily: "'Exo 2', sans-serif" }}>✓</button>
+                  <button onClick={() => approveRewardRedemption(pr.id, false)} style={{ background: "rgba(255,68,68,0.15)", border: "1px solid #ff4444", borderRadius: 6, padding: "4px 12px", color: "#ff4444", cursor: "pointer", fontSize: 12, fontFamily: "'Exo 2', sans-serif" }}>✗</button>
                 </div>
               </div>
             );
@@ -1501,11 +1571,11 @@ export default function FamilyQuestBoard() {
           <button
             onClick={() => view === "parent" ? setView("board") : setView("pin")}
             style={{
-              background: pendingApprovals.length > 0 ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.05)",
-              border: `1px solid ${pendingApprovals.length > 0 ? "rgba(255,215,0,0.4)" : "rgba(255,255,255,0.1)"}`,
+              background: totalPending > 0 ? "rgba(255,215,0,0.15)" : "rgba(255,255,255,0.05)",
+              border: `1px solid ${totalPending > 0 ? "rgba(255,215,0,0.4)" : "rgba(255,255,255,0.1)"}`,
               borderRadius: 10,
               padding: "6px 14px",
-              color: pendingApprovals.length > 0 ? "#ffd700" : "#888",
+              color: totalPending > 0 ? "#ffd700" : "#888",
               cursor: "pointer",
               fontFamily: "'Orbitron', sans-serif",
               fontSize: 11,
@@ -1514,14 +1584,14 @@ export default function FamilyQuestBoard() {
             }}
           >
             {view === "parent" ? "🔓 HQ" : "🔒 Quest Master"}
-            {pendingApprovals.length > 0 && view !== "parent" && (
+            {totalPending > 0 && view !== "parent" && (
               <span style={{
                 position: "absolute", top: -6, right: -6,
                 background: "#ff4444", color: "#fff", fontSize: 10,
                 width: 18, height: 18, borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontFamily: "'Exo 2', sans-serif", fontWeight: 700,
-              }}>{pendingApprovals.length}</span>
+              }}>{totalPending}</span>
             )}
           </button>
         </div>
