@@ -53,12 +53,14 @@ function AppShell() {
         select option { background: #1a1a2e; color: #fff; }
       `}</style>
       <div style={{
-        minHeight: "100vh",
+        height: "100vh",
         background: "linear-gradient(135deg, #0a0a1a 0%, #0d1b2a 40%, #1a0a2e 100%)",
         color: "#fff",
         fontFamily: "'Exo 2', sans-serif",
         position: "relative",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}>
         <Stars />
         {xpPopup && <XpPopup amount={xpPopup} />}
@@ -77,7 +79,7 @@ function AppShell() {
 
         {/* Header */}
         <div style={{
-          position: "relative", zIndex: 1,
+          position: "relative", zIndex: 1, flexShrink: 0,
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "16px 24px",
           borderBottom: "1px solid rgba(255,255,255,0.05)",
@@ -111,7 +113,7 @@ function AppShell() {
           </button>
         </div>
 
-        <div style={{ position: "relative", zIndex: 1 }}>
+        <div style={{ position: "relative", zIndex: 1, flex: 1, overflowY: "auto" }}>
           {view === "select" && <SelectScreen nav={nav} />}
           {view === "board" && <BoardScreen nav={nav} />}
           {view === "kid" && <KidView nav={nav} />}
