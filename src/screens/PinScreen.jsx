@@ -1,7 +1,9 @@
-import { PARENT_PIN } from "../constants";
+import { useGame } from "../context/GameContext";
 
 export default function PinScreen({ nav }) {
-  const { pinInput, setPinInput, pinError, setPinError, setView } = nav;
+  const { state } = useGame();
+  const { pinInput, setPinInput, pinError, setPinError, setView, activeUser } = nav;
+  const parentPin = state.parentPin || "1234";
 
   const handleKey = (key) => {
     if (key === "⌫") {
@@ -12,7 +14,7 @@ export default function PinScreen({ nav }) {
     const newPin = pinInput + key;
     setPinInput(newPin);
     if (newPin.length === 4) {
-      if (newPin === PARENT_PIN) {
+      if (newPin === parentPin) {
         setView("parent");
         setPinInput("");
         setPinError(false);
@@ -26,7 +28,7 @@ export default function PinScreen({ nav }) {
   return (
     <div style={{ padding: "40px 24px", maxWidth: 400, margin: "0 auto", textAlign: "center" }}>
       <button
-        onClick={() => setView("board")}
+        onClick={() => setView(activeUser ? "board" : "select")}
         style={{ background: "none", border: "none", color: "#00ffcc", fontSize: 14, cursor: "pointer", fontFamily: "'Exo 2', sans-serif", marginBottom: 24, display: "block" }}
       >← Back</button>
       <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
@@ -63,7 +65,7 @@ export default function PinScreen({ nav }) {
       </div>
 
       {pinError && <div style={{ color: "#ff4444", fontSize: 13, fontFamily: "'Exo 2', sans-serif" }}>Wrong PIN. Try again.</div>}
-      <div style={{ color: "#555", fontSize: 11, fontFamily: "'Exo 2', sans-serif", marginTop: 8 }}>Default PIN: 1234</div>
+      <div style={{ color: "#555", fontSize: 11, fontFamily: "'Exo 2', sans-serif", marginTop: 8 }}>PIN can be changed in Quest Master HQ</div>
     </div>
   );
 }
