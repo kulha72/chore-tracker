@@ -6,6 +6,7 @@ export const LEVEL_THRESHOLDS = [0, 30, 75, 140, 230, 350, 500, 700, 950, 1250];
 export const PARENT_PIN = "1234";
 
 export const INITIAL_STATE = {
+  parentPin: "1234",
   members: [
     { id: "p1", name: "Mom", avatar: "👩‍🚀", role: "parent", xp: 0, tokens: 0, level: 1, streak: 0 },
     { id: "p2", name: "Dad", avatar: "🧑‍🚀", role: "parent", xp: 0, tokens: 0, level: 1, streak: 0 },

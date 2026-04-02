@@ -58,14 +58,24 @@ export default function SelectScreen({ nav }) {
             <div style={{ fontFamily: "'Exo 2', sans-serif", fontSize: 13, color: "#666" }}>Who's checking in?</div>
           </div>
         </div>
-        <button
-          onClick={toggleFullscreen}
-          style={{
-            background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8, padding: "5px 12px", cursor: "pointer",
-            color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
-          }}
-        >⛶</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={() => setView("pin")}
+            style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+              color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
+            }}
+          >🔒 HQ</button>
+          <button
+            onClick={toggleFullscreen}
+            style={{
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8, padding: "5px 12px", cursor: "pointer",
+              color: "#888", fontSize: 11, fontFamily: "'Orbitron', sans-serif",
+            }}
+          >⛶</button>
+        </div>
       </div>
 
       {/* Two-column landscape layout */}

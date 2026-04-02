@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { INITIAL_STATE } from "../constants";
 import { isToday, isThisWeek } from "../utils";
 import { useGame } from "../context/GameContext";
@@ -85,6 +86,11 @@ export default function ParentHQ({ nav }) {
     approveCompletion, approveRewardRedemption,
     exportState, importState, fileInputRef,
   } = useGame();
+
+  const [pinChangeOpen, setPinChangeOpen] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinChangeError, setPinChangeError] = useState("");
 
   const {
     hqTab, setHqTab, setView,
@@ -378,6 +384,51 @@ export default function ParentHQ({ nav }) {
                 </div>
                 <input value={state.longTermMission.reward} onChange={(e) => saveState({ ...state, longTermMission: { ...state.longTermMission, reward: e.target.value } })} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#ff6bff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }} placeholder="Reward" />
                 <button onClick={() => saveState({ ...state, longTermMission: { ...state.longTermMission, currentXp: 0 } })} style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 6, padding: "5px 12px", color: "#ff4444", cursor: "pointer", fontSize: 11, fontFamily: "'Exo 2', sans-serif", alignSelf: "flex-start" }}>Reset Progress</button>
+              </div>
+            )}
+          </div>
+
+          {/* Change Passcode */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 13, color: "#00aaff", letterSpacing: 1 }}>🔒 PASSCODE</div>
+              <button
+                onClick={() => { setPinChangeOpen(!pinChangeOpen); setNewPin(""); setConfirmPin(""); setPinChangeError(""); }}
+                style={{ background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "3px 10px", color: "#aaa", cursor: "pointer", fontSize: 11 }}
+              >Change</button>
+            </div>
+            {pinChangeOpen && (
+              <div style={{ background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={newPin}
+                  onChange={(e) => { setNewPin(e.target.value.replace(/\D/g, "")); setPinChangeError(""); }}
+                  placeholder="New 4-digit PIN"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }}
+                />
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={confirmPin}
+                  onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, "")); setPinChangeError(""); }}
+                  placeholder="Confirm new PIN"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 6, padding: "6px 10px", color: "#fff", fontFamily: "'Exo 2', sans-serif", fontSize: 13 }}
+                />
+                {pinChangeError && <div style={{ color: "#ff4444", fontSize: 12, fontFamily: "'Exo 2', sans-serif" }}>{pinChangeError}</div>}
+                <button
+                  onClick={() => {
+                    if (newPin.length !== 4) { setPinChangeError("PIN must be exactly 4 digits."); return; }
+                    if (newPin !== confirmPin) { setPinChangeError("PINs don't match."); return; }
+                    saveState({ ...state, parentPin: newPin });
+                    setPinChangeOpen(false);
+                    setNewPin("");
+                    setConfirmPin("");
+                  }}
+                  style={{ background: "rgba(0,170,255,0.15)", border: "1px solid #00aaff", borderRadius: 6, padding: "7px 16px", color: "#00aaff", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif", alignSelf: "flex-start" }}
+                >Save PIN</button>
               </div>
             )}
           </div>
