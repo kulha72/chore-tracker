@@ -325,6 +325,11 @@ export function GameProvider({ children }) {
     showToast("Completion removed");
   };
 
+  const resetWeek = useCallback(() => {
+    saveState({ ...state, weekStart: new Date().toISOString() });
+    showToast("Weekly quests reset! New week started.");
+  }, [state, saveState]);
+
   const exportState = useCallback(() => {
     const data = JSON.stringify(state, null, 2);
     const blob = new Blob([data], { type: "application/json" });
@@ -369,6 +374,7 @@ export function GameProvider({ children }) {
     redeemReward, redeemAdultReward,
     approveRewardRedemption,
     parentMarkComplete, parentUnmarkComplete,
+    resetWeek,
     exportState, importState, fileInputRef,
   };
 

@@ -85,6 +85,7 @@ export default function ParentHQ({ nav }) {
     pendingApprovals, pendingRewardRequests, totalPending,
     approveCompletion, approveRewardRedemption,
     exportState, importState, fileInputRef,
+    resetWeek,
   } = useGame();
 
   const [pinChangeOpen, setPinChangeOpen] = useState(false);
@@ -438,6 +439,10 @@ export default function ParentHQ({ nav }) {
             <button onClick={exportState} style={{ background: "rgba(0,255,204,0.1)", border: "1px solid #00ffcc", borderRadius: 8, padding: "8px 16px", color: "#00ffcc", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}>📤 Export Save</button>
             <button onClick={() => fileInputRef.current?.click()} style={{ background: "rgba(120,80,255,0.1)", border: "1px solid #7850ff", borderRadius: 8, padding: "8px 16px", color: "#7850ff", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}>📥 Import Save</button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={importState} style={{ display: "none" }} />
+            <button
+              onClick={() => { if (confirm("Reset the week? All weekly quest completions will be cleared for everyone.")) resetWeek(); }}
+              style={{ background: "rgba(120,80,255,0.1)", border: "1px solid rgba(120,80,255,0.4)", borderRadius: 8, padding: "8px 16px", color: "#7850ff", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}
+            >🔄 Reset Week</button>
             <button
               onClick={() => { if (confirm("Reset ALL data? This can't be undone.")) saveState(INITIAL_STATE); }}
               style={{ background: "rgba(255,68,68,0.1)", border: "1px solid rgba(255,68,68,0.3)", borderRadius: 8, padding: "8px 16px", color: "#ff4444", cursor: "pointer", fontSize: 12, fontFamily: "'Orbitron', sans-serif" }}
